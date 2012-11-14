@@ -2,8 +2,8 @@
 ===================================
 
 
-    NetMission Object Registry    
-              Troid92              
+    NetMission Object Registry
+              Troid92
 
 
 ===================================
@@ -41,7 +41,7 @@ class NMObject
     private:
     long theDepth;
     NMObjNode* theNode;
-    
+
     public:
     NMObject();
     ~NMObject();
@@ -106,13 +106,14 @@ NMObjNode* NMObject::SetTheNode(NMObjNode* newNode)
         theNode = newNode;
         firstSet = false;
     }
+    return theNode;
 }
 
 
 
 
 // ==============
-//  Object Nodes 
+//  Object Nodes
 // ==============
 
 
@@ -122,7 +123,7 @@ class NMObjNode
     NMObjNode* next;
     char* name;
     NMObject* object;
-    
+
     NMObjNode();
     //~NMObjNode() { MessageBox(NULL,"Destructor","Destructor",MB_OK); };
 };
@@ -152,7 +153,7 @@ class NMObjects
 {
     private:
     NMObjNode* firstNode;
-    
+
     public:
     NMObjects();
     void RegisterObject(NMObject* , char* const, long);
@@ -162,7 +163,7 @@ class NMObjects
     void Draw();
     bool DeleteObject(NMObject* );
     ~NMObjects();
-    
+
 };
 
 
@@ -351,7 +352,7 @@ void NMObjects::SetDepth(NMObject* theObject)
             currentNode1 = currentNode1->next;
         }
     }
-    
+
     if (success && theNode != 0)
     {
         //MessageBox(NULL,"Moving node","Moving node",MB_OK);
@@ -482,7 +483,7 @@ class NMGlobal
     NMGlobal();
     NMObjects nmObjects;
     ~NMGlobal();
-    
+
 } nmGlobal;
 
 NMGlobal::NMGlobal()
