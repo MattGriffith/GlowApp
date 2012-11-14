@@ -2,26 +2,17 @@
 ===================================
 
 
-           Racing Stuff    
-              Troid92              
+           Racing Stuff
+              Troid92
 
 
 ===================================
 */
 
 
-// Other
-extern bool key[];
-extern bool keyprev[];
-extern bool keyn[];
-extern bool keyp[];
-extern bool keyr[];
-
 // System
 extern const float PI;
 extern const float dtr;
-extern int i;
-extern int j;
 
 float nmGetAngle(float x1, float y1, float x2, float y2)
 {
@@ -38,7 +29,7 @@ float nmGetAngle(float x1, float y1, float x2, float y2)
 
     float angle = atan2(y2-y1, x2-x1);
     angle *= dtr;
-    
+
     if ( angle < 0 ) {
         angle += 360;
     }
@@ -68,7 +59,7 @@ GLuint nmLoadImage(char* filename, bool transparent)
         // error!
         return 0;
     }
-    
+
     corona::FlipImage(image, 45);
 
     int width  = image->getWidth();
@@ -77,10 +68,10 @@ GLuint nmLoadImage(char* filename, bool transparent)
 
     // we're guaranteed that the first eight bits of every pixel is red,
     // the next eight bits is green, and so on...
-    
+
     unsigned char *imageBuf = new unsigned char[width*height*4];
-    
-    for( i=0, j=0; i<width*height*3; i+=3, j+=4 )
+
+    for(int i=0, j=0; i<width*height*3; i+=3, j+=4 )
     {
         imageBuf[j] = 255;
         imageBuf[j+1] = 255;
@@ -149,11 +140,11 @@ class Particle
 Particle::Particle()
 {
     destx = desty = 0;
-    x = std::rand()%641;
-    y = std::rand()%481;
-    xspeed = std::rand()%10-5;
-    yspeed = std::rand()%10-5;
-    colorAnim = (std::rand()%360)*dtr;
+    x = rand()%641;
+    y = rand()%481;
+    xspeed = rand()%10-5;
+    yspeed = rand()%10-5;
+    colorAnim = (rand()%360)*dtr;
     red = sin(colorAnim) >= 0 ? sin(colorAnim) : -sin(colorAnim);
     green = sin(colorAnim+1.04719755f) >= 0 ? sin(colorAnim+1.04719755f) : -sin(colorAnim+1.04719755f);
     blue = sin(colorAnim+2.0943951f) >= 0 ? sin(colorAnim+2.0943951f) : -sin(colorAnim+2.0943951f);
@@ -172,8 +163,8 @@ void Particle::Update(bool GoToDest)
     }
     else
     {
-        xspeed += ((std::rand()%101)/400.0f)-.125f;
-        yspeed += ((std::rand()%101)/400.0f)-.125f;
+        xspeed += ((rand()%101)/400.0f)-.125f;
+        yspeed += ((rand()%101)/400.0f)-.125f;
     }
 
     x += xspeed;
@@ -240,13 +231,13 @@ ParticleMap::ParticleMap()
 {
     Register("pmap",0);
     particleTex = nmLoadImage("particle.png", true);
-    
-    
+
+
     particleNum = 500;
-    
-    
+
+
     colorAnim = 0;
-    
+
     int width, height;
     unsigned char *data;
     corona::Image* image = corona::OpenImage("theMap.glow", corona::PF_R8G8B8);
@@ -264,20 +255,20 @@ ParticleMap::ParticleMap()
         height = image->getHeight();
         data = (unsigned char*)image->getPixels();
     }
-    
+
     unsigned int blackPixels = 0;
-    for (i = 0; i < width*height; i += 1)
+    for (int i = 0; i < width*height; i += 1)
     {
         if (data[i*3] == 0) blackPixels += 1;
     }
-    
+
     float pixelSkip = (float)blackPixels / particleNum;
-    
+
     theParticles = new Particle[particleNum];
     unsigned int particleCount = 0;
     float blackPixelCount = 0;
-    
-    for (i = 0; i < width*height*3; i += 3)
+
+    for (int i = 0; i < width*height*3; i += 3)
     {
         if (data[i] == 0)
         {
@@ -290,15 +281,15 @@ ParticleMap::ParticleMap()
             blackPixelCount += 1;
         }
     }
-    
+
     delete image;
-    
+
     unsigned int randParticle;
-    for (i = 0; i < particleNum; i++)
+    for (int i = 0; i < particleNum; i++)
     {
         if (theParticles[i].GetDestx() == 0 && theParticles[i].GetDesty() == 0)
         {
-            randParticle = std::rand()%particleNum;
+            randParticle = rand()%particleNum;
             theParticles[i].SetDest(theParticles[randParticle].GetDestx(),theParticles[randParticle].GetDesty());
         }
     }
@@ -312,8 +303,8 @@ ParticleMap::~ParticleMap()
 
 void ParticleMap::StepEvent()
 {
-    bool GoToDest = key[VK_SPACE];
-    for (i = 0; i < particleNum; i++)
+    bool GoToDest = spaceDown;
+    for (int i = 0; i < particleNum; i++)
     {
         theParticles[i].Update(GoToDest);
     }
@@ -328,7 +319,7 @@ void ParticleMap::DrawEvent()
     glBindTexture(GL_TEXTURE_2D, particleTex);
     glBegin(GL_QUADS);
     glColor3f(red,green,blue);
-    for (i = 0; i < particleNum; i++)
+    for (int i = 0; i < particleNum; i++)
     {
         glTexCoord2f(0.0f,0.0f); glVertex2f(theParticles[i].Getx()-32,theParticles[i].Gety()-32);
         glTexCoord2f(1.0f,0.0f); glVertex2f(theParticles[i].Getx()+32,theParticles[i].Gety()-32);

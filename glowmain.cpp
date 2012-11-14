@@ -7,10 +7,6 @@
 
 */
 
-
-
-
-
 #include <windows.h>
 #include <math.h>
 #include <gl/gl.h>
@@ -19,6 +15,11 @@
 #include <corona.h>
 
 #include "NMObjects_1-01.h"
+
+// Other
+bool spaceDown = false;
+bool escapeDown = false;
+
 #include "glow_stuff.h"
 
 
@@ -28,54 +29,10 @@ WPARAM wParam, LPARAM lParam);
 void EnableOpenGL (HWND hWnd, HDC *hDC, HGLRC *hRC);
 void DisableOpenGL (HWND hWnd, HDC hDC, HGLRC hRC);
 
-// Other
-bool key[256];
-bool keyprev[256];
-bool keyn[256];
-bool keyp[256];
-bool keyr[256];
 
 // System
 const float PI = 3.141592654f;
 const float dtr = PI/180;
-int i;
-int j;
-
-
-
-
-
-/*
-class BasicObject : public NMObject
-{
-    public:
-    BasicObject();
-    ~BasicObject();
-    void StepEvent();
-    void DrawEvent();
-    void Destroy() { delete this; }
-};
-
-BasicObject::BasicObject()
-{
-    Register("BasicObject",0);
-}
-
-void BasicObject::StepEvent()
-{
-    ;
-}
-
-void BasicObject::DrawEvent()
-{
-    ;
-}
-*/
-
-
-
-
-
 
 
 
@@ -87,7 +44,7 @@ class NMFramerate
     unsigned int oneFrame;
     int startTime, endTime, SleepTime;
     unsigned long frame;
-    
+
     public:
     NMFramerate(unsigned int );
     void SetFramerate(unsigned int);
@@ -163,7 +120,7 @@ unsigned long NMFramerate::GetFrame()
 
 
 // =========
-//  WinMain 
+//  WinMain
 // =========
 
 
@@ -201,7 +158,7 @@ int WINAPI WinMain (HINSTANCE hInstance,
     screen.bottom = 480;
 
     // Create window
-    hWnd = CreateWindowEx (0, "TroidGlow", "Troid Glow by Troid92", 
+    hWnd = CreateWindowEx (0, "TroidGlow", "Troid Glow by Troid92",
     WS_CAPTION | WS_POPUPWINDOW | WS_VISIBLE,
         /*WS_SYSMENU | WS_POPUP,*/ screen.left, screen.top, screen.right, screen.bottom,
         NULL, NULL, hInstance, NULL);
@@ -211,55 +168,46 @@ int WINAPI WinMain (HINSTANCE hInstance,
         MessageBox(NULL, "Error creating a window.", "Error", MB_OK | MB_ICONWARNING);
         return 0;
     }
-    
-    
+
+
     srand(timeGetTime());
-    
-    for (i = 0; i < 256; i++)
-    {
-        key[i] = false;
-        keyprev[i] = false;
-        keyn[i] = false;
-        keyp[i] = false;
-        keyr[i] = false;
-    }
-    
-    
+
+
     // Enable OpenGL
     EnableOpenGL (hWnd, &hDC, &hRC);
-    
-    
-    
-    
+
+
+
+
     glEnable( GL_TEXTURE_2D );
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
     glOrtho(0,640,0,480,-1,1);
     glClearColor (0.0f, 0.0f, 0.0f, 0.0f);
     glViewport(0,0,640,480);
-    
-    
-    
-    
-    
-    
 
-    
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
     // Game loop
 	glBindTexture(GL_TEXTURE_2D, 0);
-	
-	
-	
+
+
+
 	// Objects and stuff go here.
 	new ParticleMap;
-    
+
     NMFramerate FPS = 60;
-    
-    
-    
+
+
+
     bool play = true;
     while (play)
     {
@@ -277,101 +225,48 @@ int WINAPI WinMain (HINSTANCE hInstance,
         }
         else
         {
-            
+
             FPS.StartFrame();
-            
-            
-            
-            
-            // ========
-            //  Input: 
-            // ========
-            
-            
-            // Keyboard:
-            for (i = 0; i < 256; i++)
-            {
-                // If the key was down
-                if (key[i])
-                {
-                    // ... But came up
-                    if (keyn[i])
-                    {
-                        // Then it's not down
-                        key[i] = false;
-                        keyn[i] = false;
-                    }
-                    
-                    // If it wasn't down the previous frame, however...
-                    // Then it was just pressed
-                    if (!keyprev[i]) keyp[i] = true;
-                    // Otherwise it wasn't just pressed
-                    else keyp[i] = false;
-                }
-                // If the key wasn't down this frame
-                else
-                {
-                    // Then it wasn't just pressed
-                    keyp[i] = false;
-                }
-                // And keep the key state for the next frame's checking
-                keyprev[i] = key[i];
-            }
-            
-            // --------------
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            if (keyp[VK_ESCAPE]) play = false;
-            
-            
+
+
+
+
+            if (escapeDown) play = false;
+
+
             STEP();
-            
-            
-            
-            
-            
-            
-            
+
+
+
+
+
+
+
             // ========
-            //  Render 
+            //  Render
             // ========
-            
+
             glClear(GL_COLOR_BUFFER_BIT);
-            
+
             glPushMatrix();
-            
+
             DRAW();
-            
+
             glPopMatrix();
-            
+
             glFlush();
-            
+
             SwapBuffers (hDC);
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
+
+
+
+
+
+
+
+
+
+
             FPS.EndFrame();
         }
     }
@@ -379,55 +274,41 @@ int WINAPI WinMain (HINSTANCE hInstance,
     /* shutdown OpenGL */
     DisableOpenGL (hWnd, hDC, hRC);
 
-    
+
 
     /* destroy the window explicitly */
     DestroyWindow (hWnd);
 
-    return msg.wParam;
+    return 0;
 }
 
 
 // =========
-//  WndProc 
+//  WndProc
 // =========
 
 LRESULT CALLBACK WndProc (HWND hWnd, UINT message,
                           WPARAM wParam, LPARAM lParam)
 {
 
-    switch (message)
-    {
-    case WM_CREATE:
-        return 0;
+    switch (message) {
 
-    case WM_CLOSE:
-        PostQuitMessage (0);
-        return 0;
+        case WM_CLOSE:
+            PostQuitMessage(0);
+            return 0;
 
-    case WM_DESTROY:
-        return 0;
+        case WM_KEYDOWN:
+            if (wParam == VK_SPACE) spaceDown = true;
+            else if (wParam == VK_ESCAPE) escapeDown = true;
+            return 0;
 
-    case WM_KEYDOWN:
-        key[wParam] = true;
-        return 0;
+        case WM_KEYUP:
+            if (wParam == VK_SPACE) spaceDown = false;
+            else if (wParam == VK_ESCAPE) escapeDown = false;
+            return 0;
 
-    case WM_SYSKEYDOWN:
-        key[wParam] = true;
-        return 0;
-
-    case WM_KEYUP:
-        keyn[wParam] = true;
-        return 0;
-
-    case WM_SYSKEYUP:
-        keyn[wParam] = true;
-        return 0;
-
-
-
-    default:
-        return DefWindowProc (hWnd, message, wParam, lParam);
+        default:
+            return DefWindowProc (hWnd, message, wParam, lParam);
     }
 }
 
@@ -450,7 +331,7 @@ void EnableOpenGL (HWND hWnd, HDC *hDC, HGLRC *hRC)
     ZeroMemory (&pfd, sizeof (pfd));
     pfd.nSize = sizeof (pfd);
     pfd.nVersion = 1;
-    pfd.dwFlags = PFD_DRAW_TO_WINDOW | 
+    pfd.dwFlags = PFD_DRAW_TO_WINDOW |
       PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
     pfd.iPixelType = PFD_TYPE_RGBA;
     pfd.cColorBits = 24;
