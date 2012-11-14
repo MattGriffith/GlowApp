@@ -1,15 +1,14 @@
 # depslib dependency file v1.0
-1352878434 source:c:\users\matt\dropbox\programmer business\github old projects\glow\glowmain.cpp
+1352931493 source:c:\users\matt\dropbox\programmer business\github old projects\glow\glowmain.cpp
 	<windows.h>
 	<math.h>
 	<gl/gl.h>
 	<gl/glu.h>
 	<fstream>
 	<corona.h>
-	"NMObjects_1-01.h"
 	"glow_stuff.h"
 
 1352876372 c:\users\matt\dropbox\programmer business\github old projects\glow\nmobjects_1-01.h
 
-1352878412 c:\users\matt\dropbox\programmer business\github old projects\glow\glow_stuff.h
+1352931531 c:\users\matt\dropbox\programmer business\github old projects\glow\glow_stuff.h
 
