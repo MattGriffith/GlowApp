@@ -14,8 +14,6 @@
 #include <fstream>
 #include <corona.h>
 
-#include "NMObjects_1-01.h"
-
 // Other
 bool spaceDown = false;
 bool escapeDown = false;
@@ -150,8 +148,8 @@ int WINAPI WinMain (HINSTANCE hInstance,
 
     // Get the screen resolution
     RECT desktop;
-    GetWindowRect(GetDesktopWindow(),&desktop);
     RECT screen;
+    GetWindowRect(GetDesktopWindow(),&desktop);
     screen.left = (desktop.right+desktop.left)/2-320;
     screen.top = (desktop.bottom+desktop.top)/2-240;
     screen.right = 640;
@@ -163,8 +161,7 @@ int WINAPI WinMain (HINSTANCE hInstance,
         /*WS_SYSMENU | WS_POPUP,*/ screen.left, screen.top, screen.right, screen.bottom,
         NULL, NULL, hInstance, NULL);
 
-    if (hWnd == 0)
-    {
+    if (hWnd == 0) {
         MessageBox(NULL, "Error creating a window.", "Error", MB_OK | MB_ICONWARNING);
         return 0;
     }
@@ -202,7 +199,7 @@ int WINAPI WinMain (HINSTANCE hInstance,
 
 
 	// Objects and stuff go here.
-	new ParticleMap;
+	ParticleMap map;
 
     NMFramerate FPS = 60;
 
@@ -234,7 +231,7 @@ int WINAPI WinMain (HINSTANCE hInstance,
             if (escapeDown) play = false;
 
 
-            STEP();
+            map.StepEvent();
 
 
 
@@ -250,7 +247,7 @@ int WINAPI WinMain (HINSTANCE hInstance,
 
             glPushMatrix();
 
-            DRAW();
+            map.DrawEvent();
 
             glPopMatrix();
 

@@ -9,19 +9,26 @@
 			<Target title="Release">
 				<Option output=".\glow" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj\" />
-				<Option type="1" />
+				<Option type="0" />
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-O2" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
+					<Add option="-lopengl32" />
+					<Add option="-lglu32" />
+					<Add option="-lwinmm" />
+					<Add option="-lcorona" />
+					<Add option="-lgdi32" />
 				</Linker>
 			</Target>
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="glow_stuff.h" />
+		<Unit filename="glowmain.cpp" />
 		<Extensions>
 			<code_completion />
 			<debugger />

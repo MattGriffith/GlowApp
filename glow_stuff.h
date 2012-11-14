@@ -153,6 +153,9 @@ Particle::Particle()
 void Particle::Update(bool GoToDest)
 {
     colorAnim += .01f;
+    red = sin(colorAnim) >= 0 ? sin(colorAnim) : -sin(colorAnim);
+    green = sin(colorAnim+1.04719755f) >= 0 ? sin(colorAnim+1.04719755f) : -sin(colorAnim+1.04719755f);
+    blue = sin(colorAnim+2.0943951f) >= 0 ? sin(colorAnim+2.0943951f) : -sin(colorAnim+2.0943951f);
 
     if (GoToDest)
     {
@@ -212,7 +215,7 @@ void Particle::SetDest(int newx, int newy)
 }
 
 
-class ParticleMap : public NMObject
+class ParticleMap
 {
     private:
     float colorAnim;
@@ -224,12 +227,10 @@ class ParticleMap : public NMObject
     ~ParticleMap();
     void StepEvent();
     void DrawEvent();
-    void Destroy() { delete this; }
 };
 
 ParticleMap::ParticleMap()
 {
-    Register("pmap",0);
     particleTex = nmLoadImage("particle.png", true);
 
 
@@ -318,9 +319,11 @@ void ParticleMap::DrawEvent()
     float blue = 1-sin(colorAnim+2.0943951f);// >= 0 ? sin(colorAnim+2.0943951f) : -sin(colorAnim+2.0943951f);
     glBindTexture(GL_TEXTURE_2D, particleTex);
     glBegin(GL_QUADS);
-    glColor3f(red,green,blue);
     for (int i = 0; i < particleNum; i++)
     {
+    glColor3f(theParticles[i].GetRed(),
+              theParticles[i].GetGreen(),
+              theParticles[i].GetBlue());
         glTexCoord2f(0.0f,0.0f); glVertex2f(theParticles[i].Getx()-32,theParticles[i].Gety()-32);
         glTexCoord2f(1.0f,0.0f); glVertex2f(theParticles[i].Getx()+32,theParticles[i].Gety()-32);
         glTexCoord2f(1.0f,1.0f); glVertex2f(theParticles[i].Getx()+32,theParticles[i].Gety()+32);
