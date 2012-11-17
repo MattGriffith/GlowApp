@@ -43,10 +43,8 @@ const float dtr = PI/180;
 // =========
 
 
-int WINAPI WinMain (HINSTANCE hInstance,
-                    HINSTANCE hPrevInstance,
-                    LPSTR lpCmdLine,
-                    int iCmdShow)
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
+                    LPSTR lpCmdLine, int iCmdShow)
 {
     WNDCLASS wc;
     HWND hWnd;
@@ -60,12 +58,12 @@ int WINAPI WinMain (HINSTANCE hInstance,
     wc.cbClsExtra = 0;
     wc.cbWndExtra = 0;
     wc.hInstance = hInstance;
-    wc.hIcon = LoadIcon (NULL, IDI_APPLICATION);//ExtractIcon (NULL, "NetMission.ico", 0);
-    wc.hCursor = LoadCursor (NULL, IDC_ARROW);
-    wc.hbrBackground = (HBRUSH) GetStockObject (BLACK_BRUSH);
+    wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);//ExtractIcon (NULL, "NetMission.ico", 0);
+    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
     wc.lpszMenuName = NULL;
     wc.lpszClassName = "TroidGlow";
-    RegisterClass (&wc);
+    RegisterClass(&wc);
 
     // Get the screen resolution
     RECT desktop;
