@@ -49,7 +49,7 @@ float nmGetAngle(float x1, float y1, float x2, float y2)
 
 
 
-GLuint nmLoadImage(char* filename, bool transparent)
+GLuint nmLoadImage(const char* filename, bool transparent)
 {
     GLuint texture;
     bool wrap = true;
@@ -119,26 +119,15 @@ GLuint nmLoadImage(char* filename, bool transparent)
 
 
 
-class Particle
-{
-    private:
+struct Particle {
     float x, y, xspeed, yspeed, red, green, blue, colorAnim;
     int destx, desty;
-    public:
+
     Particle();
-    void Update(bool );
-    float GetRed();
-    float GetGreen();
-    float GetBlue();
-    float Getx();
-    float Gety();
-    int GetDestx();
-    int GetDesty();
-    void SetDest(int, int);
+    void Update(bool goToDest);
 };
 
-Particle::Particle()
-{
+Particle::Particle() {
     destx = desty = 0;
     x = rand()%641;
     y = rand()%481;
@@ -150,14 +139,14 @@ Particle::Particle()
     blue = sin(colorAnim+2.0943951f) >= 0 ? sin(colorAnim+2.0943951f) : -sin(colorAnim+2.0943951f);
 }
 
-void Particle::Update(bool GoToDest)
+void Particle::Update(bool goToDest)
 {
     colorAnim += .01f;
     red = sin(colorAnim) >= 0 ? sin(colorAnim) : -sin(colorAnim);
     green = sin(colorAnim+1.04719755f) >= 0 ? sin(colorAnim+1.04719755f) : -sin(colorAnim+1.04719755f);
     blue = sin(colorAnim+2.0943951f) >= 0 ? sin(colorAnim+2.0943951f) : -sin(colorAnim+2.0943951f);
 
-    if (GoToDest)
+    if (goToDest)
     {
         xspeed += (destx-x)/320.0f;
         yspeed += (desty-y)/240.0f;
@@ -192,26 +181,6 @@ void Particle::Update(bool GoToDest)
         y = 448;
         yspeed = -yspeed;
     }
-}
-
-float Particle::GetRed() { return red; }
-
-float Particle::GetGreen() { return green; }
-
-float Particle::GetBlue() { return blue; }
-
-float Particle::Getx() { return x; }
-
-float Particle::Gety() { return y; }
-
-int Particle::GetDestx() { return destx; }
-
-int Particle::GetDesty() { return desty; }
-
-void Particle::SetDest(int newx, int newy)
-{
-    destx = newx;
-    desty = newy;
 }
 
 
@@ -275,7 +244,8 @@ ParticleMap::ParticleMap()
         {
             if (blackPixelCount >= pixelSkip)
             {
-                theParticles[particleCount].SetDest((i/3)%width,(i/3)/width);
+                theParticles[particleCount].destx = (i/3)%width;
+                theParticles[particleCount].desty = (i/3)/width;
                 particleCount += 1;
                 blackPixelCount = 0;
             }
@@ -286,18 +256,18 @@ ParticleMap::ParticleMap()
     delete image;
 
     unsigned int randParticle;
-    for (int i = 0; i < particleNum; i++)
+    for (unsigned int i = 0; i < particleNum; i++)
     {
-        if (theParticles[i].GetDestx() == 0 && theParticles[i].GetDesty() == 0)
+        if (theParticles[i].destx == 0 && theParticles[i].desty == 0)
         {
             randParticle = rand()%particleNum;
-            theParticles[i].SetDest(theParticles[randParticle].GetDestx(),theParticles[randParticle].GetDesty());
+            theParticles[i].destx = theParticles[randParticle].destx;
+            theParticles[i].desty = theParticles[randParticle].desty;
         }
     }
 }
 
-ParticleMap::~ParticleMap()
-{
+ParticleMap::~ParticleMap() {
     delete[] theParticles;
     glDeleteTextures(1,&particleTex);
 }
@@ -305,7 +275,7 @@ ParticleMap::~ParticleMap()
 void ParticleMap::StepEvent()
 {
     bool GoToDest = spaceDown;
-    for (int i = 0; i < particleNum; i++)
+    for (unsigned int i = 0; i < particleNum; i++)
     {
         theParticles[i].Update(GoToDest);
     }
@@ -319,15 +289,13 @@ void ParticleMap::DrawEvent()
     float blue = 1-sin(colorAnim+2.0943951f);// >= 0 ? sin(colorAnim+2.0943951f) : -sin(colorAnim+2.0943951f);
     glBindTexture(GL_TEXTURE_2D, particleTex);
     glBegin(GL_QUADS);
-    for (int i = 0; i < particleNum; i++)
+    for (unsigned int i = 0; i < particleNum; i++)
     {
-    glColor3f(theParticles[i].GetRed(),
-              theParticles[i].GetGreen(),
-              theParticles[i].GetBlue());
-        glTexCoord2f(0.0f,0.0f); glVertex2f(theParticles[i].Getx()-32,theParticles[i].Gety()-32);
-        glTexCoord2f(1.0f,0.0f); glVertex2f(theParticles[i].Getx()+32,theParticles[i].Gety()-32);
-        glTexCoord2f(1.0f,1.0f); glVertex2f(theParticles[i].Getx()+32,theParticles[i].Gety()+32);
-        glTexCoord2f(0.0f,1.0f); glVertex2f(theParticles[i].Getx()-32,theParticles[i].Gety()+32);
+        glColor3f(theParticles[i].red, theParticles[i].green, theParticles[i].blue);
+        glTexCoord2f(0.0f,0.0f); glVertex2f(theParticles[i].x-32,theParticles[i].y-32);
+        glTexCoord2f(1.0f,0.0f); glVertex2f(theParticles[i].x+32,theParticles[i].y-32);
+        glTexCoord2f(1.0f,1.0f); glVertex2f(theParticles[i].x+32,theParticles[i].y+32);
+        glTexCoord2f(0.0f,1.0f); glVertex2f(theParticles[i].x-32,theParticles[i].y+32);
     }
     glEnd();
     glBindTexture(GL_TEXTURE_2D, 0);
