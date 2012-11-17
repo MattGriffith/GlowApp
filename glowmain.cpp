@@ -36,85 +36,6 @@ const float dtr = PI/180;
 
 
 
-class NMFramerate
-{
-    private:
-    unsigned int oneFrame;
-    int startTime, endTime, SleepTime;
-    unsigned long frame;
-
-    public:
-    NMFramerate(unsigned int );
-    void SetFramerate(unsigned int);
-    void StartFrame();
-    void EndFrame();
-    unsigned long GetFrame();
-};
-
-NMFramerate::NMFramerate(unsigned int fps = 30)
-{
-    SetFramerate(fps);
-    startTime = timeGetTime()-oneFrame;
-}
-
-void NMFramerate::SetFramerate(unsigned int fps)
-{
-    if (fps && fps <= 1000)
-    {
-        oneFrame = 1000/fps;
-    }
-    else oneFrame = 1000/30;
-    frame = 0;
-}
-
-void NMFramerate::StartFrame()
-{
-    if (SleepTime <= 0)
-    {
-        startTime = timeGetTime();
-    }
-    else startTime += oneFrame;
-}
-
-void NMFramerate::EndFrame()
-{
-    endTime = timeGetTime();
-    SleepTime = oneFrame-(endTime-startTime);
-    if (SleepTime > 0 && SleepTime <= oneFrame)
-    {
-        Sleep(SleepTime);
-    }
-    frame += 1;
-}
-
-unsigned long NMFramerate::GetFrame()
-{
-    return frame;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 // =========
@@ -201,8 +122,6 @@ int WINAPI WinMain (HINSTANCE hInstance,
 	// Objects and stuff go here.
 	ParticleMap map;
 
-    NMFramerate FPS = 60;
-
 
 
     bool play = true;
@@ -222,8 +141,6 @@ int WINAPI WinMain (HINSTANCE hInstance,
         }
         else
         {
-
-            FPS.StartFrame();
 
 
 
@@ -264,7 +181,7 @@ int WINAPI WinMain (HINSTANCE hInstance,
 
 
 
-            FPS.EndFrame();
+            Sleep(16);
         }
     }
 
