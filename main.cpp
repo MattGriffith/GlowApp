@@ -14,7 +14,7 @@
 #include <fstream>
 #include <corona.h>
 
-
+#include "config.h"
 
 // Functions and classes
 LRESULT CALLBACK WndProc (HWND hWnd, UINT message,
@@ -358,7 +358,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
 
 
-
+    ConfigFile hi;
+    hi.Open("glow.ini");
 
 
 
