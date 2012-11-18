@@ -16,54 +16,11 @@
 
 #include "config.h"
 
-// Functions and classes
-LRESULT CALLBACK WndProc (HWND hWnd, UINT message,
-WPARAM wParam, LPARAM lParam);
-void EnableOpenGL (HWND hWnd, HDC *hDC, HGLRC *hRC);
-void DisableOpenGL (HWND hWnd, HDC hDC, HGLRC hRC);
 
 
 // System
-const float PI = 3.141592654f;
-const float dtr = PI/180;
-
-
-// Other
-bool spaceDown = false;
-bool escapeDown = false;
-
-
-
-float nmGetAngle(float x1, float y1, float x2, float y2)
-{
-    if (x2 == x1)
-    {
-        if ( y1 > y2 ) return 270;
-        if ( y1 < y2 ) return 90;
-    }
-    if (y1 == y2)
-    {
-        if ( x2 < x1 ) return 180;
-        if ( x2 > x1 ) return 0;
-    }
-
-    float angle = atan2(y2-y1, x2-x1);
-    angle *= dtr;
-
-    if ( angle < 0 ) {
-        angle += 360;
-    }
-
-    return angle;
-}
-
-
-
-
-
-
-
-
+static const float PI = 3.141592654f;
+static const float dtr = PI/180;
 
 
 
@@ -108,12 +65,24 @@ GLuint LoadAlphaMap(const char* filename) {
 
 
 
+
+
+
+
+
+static bool spaceDown = false;
+static bool escapeDown = false;
+
+
+
+
+
 struct Particle {
     float x, y, xspeed, yspeed, red, green, blue, colorAnim;
     int destx, desty;
 
     Particle();
-    void Update(bool goToDest);
+    void Update();
 };
 
 Particle::Particle() {
@@ -128,14 +97,14 @@ Particle::Particle() {
     blue = sin(colorAnim+2.0943951f) >= 0 ? sin(colorAnim+2.0943951f) : -sin(colorAnim+2.0943951f);
 }
 
-void Particle::Update(bool goToDest)
+void Particle::Update()
 {
     colorAnim += .01f;
     red = sin(colorAnim) >= 0 ? sin(colorAnim) : -sin(colorAnim);
     green = sin(colorAnim+1.04719755f) >= 0 ? sin(colorAnim+1.04719755f) : -sin(colorAnim+1.04719755f);
     blue = sin(colorAnim+2.0943951f) >= 0 ? sin(colorAnim+2.0943951f) : -sin(colorAnim+2.0943951f);
 
-    if (goToDest)
+    if (spaceDown)
     {
         xspeed += (destx-x)/320.0f;
         yspeed += (desty-y)/240.0f;
@@ -171,6 +140,13 @@ void Particle::Update(bool goToDest)
         yspeed = -yspeed;
     }
 }
+
+
+
+
+
+
+
 
 
 class ParticleMap {
@@ -260,12 +236,9 @@ ParticleMap::~ParticleMap() {
     glDeleteTextures(1,&particleTex);
 }
 
-void ParticleMap::StepEvent()
-{
-    bool GoToDest = spaceDown;
-    for (unsigned int i = 0; i < particleNum; i++)
-    {
-        theParticles[i].Update(GoToDest);
+void ParticleMap::StepEvent() {
+    for (unsigned int i = 0; i < particleNum; i++) {
+        theParticles[i].Update();
     }
 }
 
@@ -296,6 +269,12 @@ void ParticleMap::DrawEvent()
 //  WinMain
 // =========
 
+
+// Functions and classes
+LRESULT CALLBACK WndProc (HWND hWnd, UINT message,
+WPARAM wParam, LPARAM lParam);
+void EnableOpenGL (HWND hWnd, HDC *hDC, HGLRC *hRC);
+void DisableOpenGL (HWND hWnd, HDC hDC, HGLRC hRC);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                     LPSTR lpCmdLine, int iCmdShow)

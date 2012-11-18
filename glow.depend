@@ -12,7 +12,7 @@
 
 1353182815 c:\users\matt\dropbox\programmer business\github old projects\glow\glow_stuff.h
 
-1353212900 source:c:\users\matt\dropbox\programmer business\github old projects\glow\main.cpp
+1353269161 source:c:\users\matt\dropbox\programmer business\github old projects\glow\main.cpp
 	<windows.h>
 	<math.h>
 	<gl/gl.h>
@@ -24,4 +24,9 @@
 1353227229 c:\users\matt\dropbox\programmer business\github old projects\glow\config.h
 	<string>
 	<map>
+
+1353269096 source:c:\users\matt\dropbox\programmer business\github old projects\glow\config.cpp
+	"config.h"
+	<fstream>
+	<stdlib.h>
 
