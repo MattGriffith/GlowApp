@@ -16,14 +16,17 @@
 
 #include "config.h"
 
+#define MIN_WIDTH 32
+#define MIN_HEIGHT 1
 
-
-// System
+// Universal constants
 static const float PI = 3.141592654f;
-static const float dtr = PI/180;
+static const float DTR = PI/180; // Degrees To Radians
 
-
-
+// System settings
+static ConfigFile Config;
+static int displayWidth = 640;
+static int displayHeight = 480;
 
 
 GLuint LoadAlphaMap(const char* filename) {
@@ -78,7 +81,7 @@ static bool escapeDown = false;
 
 
 struct Particle {
-    float x, y, xspeed, yspeed, red, green, blue, colorAnim;
+    float x, y, xspeed, yspeed, red, green, blue, colorAnimOffset;
     int destx, desty;
 
     Particle();
@@ -86,23 +89,24 @@ struct Particle {
 };
 
 Particle::Particle() {
+    // Set the position
     destx = desty = 0;
-    x = rand()%641;
-    y = rand()%481;
-    xspeed = rand()%10-5;
-    yspeed = rand()%10-5;
-    colorAnim = (rand()%360)*dtr;
-    red = sin(colorAnim) >= 0 ? sin(colorAnim) : -sin(colorAnim);
-    green = sin(colorAnim+1.04719755f) >= 0 ? sin(colorAnim+1.04719755f) : -sin(colorAnim+1.04719755f);
-    blue = sin(colorAnim+2.0943951f) >= 0 ? sin(colorAnim+2.0943951f) : -sin(colorAnim+2.0943951f);
+    x = rand()%displayWidth;
+    y = rand()%displayHeight;
+
+    // Set the speed within the given range
+    float maxStartSpeed = fabs(Config.GetFloat("particle:maxStartSpeed",5.0));
+    float fractionOfRandSpace = (maxStartSpeed*2)/RAND_MAX;
+    xspeed = rand()*fractionOfRandSpace-maxStartSpeed;
+    yspeed = rand()*fractionOfRandSpace-maxStartSpeed;
+
+    // Set the color
+    colorAnimOffset = (rand()%360)*DTR;
+    red = green = blue = 0;
 }
 
 void Particle::Update()
 {
-    colorAnim += .01f;
-    red = sin(colorAnim) >= 0 ? sin(colorAnim) : -sin(colorAnim);
-    green = sin(colorAnim+1.04719755f) >= 0 ? sin(colorAnim+1.04719755f) : -sin(colorAnim+1.04719755f);
-    blue = sin(colorAnim+2.0943951f) >= 0 ? sin(colorAnim+2.0943951f) : -sin(colorAnim+2.0943951f);
 
     if (spaceDown)
     {
@@ -124,9 +128,9 @@ void Particle::Update()
         x = 0;
         xspeed = -xspeed;
     }
-    if (x > 640)
+    if (x > displayWidth)
     {
-        x = 640;
+        x = displayWidth;
         xspeed = -xspeed;
     }
     if (y < 0)
@@ -134,9 +138,9 @@ void Particle::Update()
         y = 0;
         yspeed = -yspeed;
     }
-    if (y > 448)
+    if (y > displayHeight)
     {
-        y = 448;
+        y = displayHeight;
         yspeed = -yspeed;
     }
 }
@@ -164,17 +168,14 @@ class ParticleMap {
 
 ParticleMap::ParticleMap()
 {
-    particleTex = LoadAlphaMap("particle.png");
-
-
-    particleNum = 500;
-
+    particleTex = LoadAlphaMap(Config.GetString("particle:texture","particle.png").c_str());
+    particleNum = Config.GetInt("map:numParticles",500);
 
     colorAnim = 0;
 
     int width, height;
     unsigned char *data;
-    corona::Image* image = corona::OpenImage("theMap.glow", corona::PF_R8G8B8);
+    corona::Image* image = corona::OpenImage(Config.GetString("map:image","theMap.glow").c_str(), corona::PF_R8G8B8);
     unsigned char error[3] = { 0, 0, 0 };
     if (!image) {
         width  = 1;
@@ -245,6 +246,8 @@ void ParticleMap::StepEvent() {
 void ParticleMap::DrawEvent()
 {
     colorAnim += .01f;
+    if (colorAnim > 2*PI) colorAnim -= 2*PI;
+
     float red = 1-sin(colorAnim);// >= 0 ? sin(colorAnim) : -sin(colorAnim);
     float green = 1-sin(colorAnim+1.04719755f);// >= 0 ? sin(colorAnim+1.04719755f) : -sin(colorAnim+1.04719755f);
     float blue = 1-sin(colorAnim+2.0943951f);// >= 0 ? sin(colorAnim+2.0943951f) : -sin(colorAnim+2.0943951f);
@@ -252,6 +255,9 @@ void ParticleMap::DrawEvent()
     glBegin(GL_QUADS);
     for (unsigned int i = 0; i < particleNum; i++)
     {
+        theParticles[i].red = fabs(sin(colorAnim+theParticles[i].colorAnimOffset));
+        theParticles[i].green = fabs(sin(colorAnim+theParticles[i].colorAnimOffset+1.04719755f));
+        theParticles[i].blue = fabs(sin(colorAnim+theParticles[i].colorAnimOffset+2.0943951f));
         glColor3f(theParticles[i].red, theParticles[i].green, theParticles[i].blue);
         glTexCoord2f(0.0f,0.0f); glVertex2f(theParticles[i].x-32,theParticles[i].y-32);
         glTexCoord2f(1.0f,0.0f); glVertex2f(theParticles[i].x+32,theParticles[i].y-32);
@@ -260,6 +266,11 @@ void ParticleMap::DrawEvent()
     }
     glEnd();
     glBindTexture(GL_TEXTURE_2D, 0);
+
+    red = sin(colorAnim) >= 0 ? sin(colorAnim) : -sin(colorAnim);
+    green = sin(colorAnim+1.04719755f) >= 0 ? sin(colorAnim+1.04719755f) : -sin(colorAnim+1.04719755f);
+    blue = sin(colorAnim+2.0943951f) >= 0 ? sin(colorAnim+2.0943951f) : -sin(colorAnim+2.0943951f);
+
 }
 
 
@@ -285,6 +296,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     HGLRC hRC;
     MSG msg;
 
+    Config.Open("glow.ini");
+
     // Register window
     wc.style = CS_OWNDC;
     wc.lpfnWndProc = WndProc;
@@ -298,20 +311,23 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     wc.lpszClassName = "TroidGlow";
     RegisterClass(&wc);
 
-    // Get the screen resolution
+    // Get the screen resolution and center the window
     RECT desktop;
-    RECT screen;
+    displayWidth = Config.GetInt("display:width",640);
+    displayHeight = Config.GetInt("display:height",480);
+    if (displayWidth < MIN_WIDTH) displayWidth = 32;
+    if (displayHeight < MIN_HEIGHT) displayHeight = 1;
+    int windowLeft, windowTop;
     GetWindowRect(GetDesktopWindow(),&desktop);
-    screen.left = (desktop.right+desktop.left)/2-320;
-    screen.top = (desktop.bottom+desktop.top)/2-240;
-    screen.right = 640;
-    screen.bottom = 480;
+    windowLeft = (desktop.right+desktop.left-displayWidth)/2;
+    windowTop = (desktop.bottom+desktop.top-displayHeight)/2;
 
     // Create window
-    hWnd = CreateWindowEx (0, "TroidGlow", "Troid Glow by Troid92",
-    WS_CAPTION | WS_POPUPWINDOW | WS_VISIBLE,
-        /*WS_SYSMENU | WS_POPUP,*/ screen.left, screen.top, screen.right, screen.bottom,
-        NULL, NULL, hInstance, NULL);
+    hWnd = CreateWindowEx (0, "TroidGlow",
+                            Config.GetString("display:caption","TroidGlow by Matthew Griffith").c_str(),
+                            WS_CAPTION | WS_POPUPWINDOW | WS_VISIBLE,
+                            windowLeft, windowTop, displayWidth, displayHeight,
+                            NULL, NULL, hInstance, NULL);
 
     if (hWnd == 0) {
         MessageBox(NULL, "Error creating a window.", "Error", MB_OK | MB_ICONWARNING);
@@ -328,12 +344,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
 
 
-    glEnable( GL_TEXTURE_2D );
+    glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-    glOrtho(0,640,0,480,-1,1);
-    glClearColor (0.0f, 0.0f, 0.0f, 0.0f);
-    glViewport(0,0,640,480);
+    glOrtho(0,displayWidth,0,displayHeight,-1,1);
+
+    glClearColor(Config.GetFloat("display:bgRed",0.0f),
+                 Config.GetFloat("display:bgGreen",0.0f),
+                 Config.GetFloat("display:bgBlue",0.0f),
+                 0.0f);
+
+    glViewport(0,0,displayWidth,displayHeight);
 
 
 
