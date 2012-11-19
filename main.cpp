@@ -104,8 +104,9 @@ class ParticleMap {
 
     float colorAnim;
     unsigned int numParticles;
-    int particleHalfWidth, particleHalfHeight;
+    float particleHalfWidth, particleHalfHeight;
     bool manyColors;
+    float maxSpeedSqr;
 
     Particle* particleList;
     GLfloat* vertexList;
@@ -145,9 +146,11 @@ ParticleMap::ParticleMap() {
     particleTex = LoadAlphaMap(Config.GetString("particle:texture","particle.png").c_str());
     numParticles = Config.GetInt("map:numParticles",500);
     if (numParticles < 0) numParticles = 0;
-    particleHalfWidth = Config.GetInt("particle:width",64)/2;
-    particleHalfHeight = Config.GetInt("particle:height",64)/2;
+    particleHalfWidth = Config.GetInt("particle:width",64)/2.0;
+    particleHalfHeight = Config.GetInt("particle:height",64)/2.0;
     manyColors = !Config.GetBool("particle:uniformColor",true);
+    float maxSpeed = Config.GetFloat("particle:maxSpeed",0);
+    maxSpeedSqr = maxSpeed*maxSpeed;
     colorAnim = 0;
 
     // Allocate memory for the particles, and the GL arrays
@@ -278,6 +281,14 @@ void ParticleMap::Update() {
         else {
             p.xspeed += ((rand()%101)/400.0f)-.125f;
             p.yspeed += ((rand()%101)/400.0f)-.125f;
+        }
+        if (maxSpeedSqr != 0) {
+            float hypotenuseSqr = p.xspeed*p.xspeed + p.yspeed*p.yspeed;
+            if (hypotenuseSqr > maxSpeedSqr) {
+                float multiplier = sqrt(maxSpeedSqr/hypotenuseSqr);
+                p.xspeed *= multiplier;
+                p.yspeed *= multiplier;
+            }
         }
 
         p.x += p.xspeed;
