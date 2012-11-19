@@ -13,7 +13,6 @@
 #include <gl/glu.h>
 #include <fstream>
 #include <corona.h>
-#include <gl/glext.h>
 
 #include "config.h"
 
@@ -84,108 +83,107 @@ static bool escapeDown = false;
 struct Particle {
     float x, y, xspeed, yspeed, red, green, blue, colorAnimOffset;
     int destx, desty;
-
-    Particle();
-    void Update();
 };
-
-Particle::Particle() {
-    // Set the position
-    destx = desty = 0;
-    x = rand()%displayWidth;
-    y = rand()%displayHeight;
-
-    // Set the speed within the given range
-    float maxStartSpeed = fabs(Config.GetFloat("particle:maxStartSpeed",5.0));
-    float fractionOfRandSpace = (maxStartSpeed*2)/RAND_MAX;
-    xspeed = rand()*fractionOfRandSpace-maxStartSpeed;
-    yspeed = rand()*fractionOfRandSpace-maxStartSpeed;
-
-    // Set the color
-    colorAnimOffset = (rand()%360)*DTR;
-    red = green = blue = 0;
-}
-
-void Particle::Update()
-{
-
-    if (spaceDown)
-    {
-        xspeed += (destx-x)/320.0f;
-        yspeed += (desty-y)/240.0f;
-        xspeed *= .98f;
-        yspeed *= .98f;
-    }
-    else
-    {
-        xspeed += ((rand()%101)/400.0f)-.125f;
-        yspeed += ((rand()%101)/400.0f)-.125f;
-    }
-
-    x += xspeed;
-    y += yspeed;
-    if (x < 0)
-    {
-        x = 0;
-        xspeed = -xspeed;
-    }
-    if (x > displayWidth)
-    {
-        x = displayWidth;
-        xspeed = -xspeed;
-    }
-    if (y < 0)
-    {
-        y = 0;
-        yspeed = -yspeed;
-    }
-    if (y > displayHeight)
-    {
-        y = displayHeight;
-        yspeed = -yspeed;
-    }
-}
-
-
-
-
-
-
-
 
 
 class ParticleMap {
-    private:
-    float colorAnim;
-    unsigned int numParticles;
-    Particle* theParticles;
-    GLuint particleTex;
-    GLuint vbo;
     public:
+
     ParticleMap();
     ~ParticleMap();
-    void StepEvent();
-    void DrawEvent();
+    void Update();
+    void Render();
+
+    private:
+
+    float colorAnim;
+    unsigned int numParticles;
+    Particle* particleList;
+    GLfloat* vertexList;
+    GLfloat* colorList;
+    GLfloat* texCoordList;
+    GLuint particleTex;
+
+    inline void CopyToGLArrays(unsigned int index);
 };
 
-ParticleMap::ParticleMap()
-{
+
+inline void ParticleMap::CopyToGLArrays(unsigned int index) {
+    Particle& p = particleList[index];
+
+    // Fill in the colors
+    unsigned int colorIt = index*12;
+    colorList[colorIt] = colorList[colorIt+3] = colorList[colorIt+6] = colorList[colorIt+9] = p.red;
+    colorList[colorIt+1] = colorList[colorIt+4] = colorList[colorIt+7] = colorList[colorIt+10] = p.green;
+    colorList[colorIt+2] = colorList[colorIt+5] = colorList[colorIt+8] = colorList[colorIt+11] = p.blue;
+
+    // Fill in the vertices
+    GLfloat top = p.y+32;
+    GLfloat bottom = p.y-32;
+    GLfloat left = p.x-32;
+    GLfloat right = p.x+32;
+    unsigned int vertexIt = index*8;
+    vertexList[vertexIt] = left; vertexList[vertexIt+1] = bottom;
+    vertexList[vertexIt+2] = right; vertexList[vertexIt+3] = bottom;
+    vertexList[vertexIt+4] = right; vertexList[vertexIt+5] = top;
+    vertexList[vertexIt+6] = left; vertexList[vertexIt+7] = top;
+}
+
+ParticleMap::ParticleMap() {
+    // Load the textures and other information
     particleTex = LoadAlphaMap(Config.GetString("particle:texture","particle.png").c_str());
     numParticles = Config.GetInt("map:numParticles",500);
-
     colorAnim = 0;
+
+    // Allocate memory for the particles, and the GL arrays
+    particleList = new Particle[numParticles];
+    vertexList = new GLfloat[numParticles*4*2];
+    colorList = new GLfloat[numParticles*4*3];
+    texCoordList = new GLfloat[numParticles*4*2];
+    if (particleList == NULL || vertexList == NULL || colorList == NULL || texCoordList == NULL) exit(1);
+
+    // Initialize the particles and GL arrays
+    float maxStartSpeed = fabs(Config.GetFloat("particle:maxStartSpeed",5.0));
+    float fractionOfRandSpace = (maxStartSpeed*2)/RAND_MAX;
+    for (unsigned int particleIt = 0; particleIt < numParticles; particleIt++) {
+        Particle& p = particleList[particleIt];
+
+        // Set the position
+        p.destx = p.desty = 0;
+        p.x = rand()%displayWidth;
+        p.y = rand()%displayHeight;
+
+        // Set the speed within the given range
+        p.xspeed = rand()*fractionOfRandSpace-maxStartSpeed;
+        p.yspeed = rand()*fractionOfRandSpace-maxStartSpeed;
+
+        // Set the color
+        p.colorAnimOffset = (rand()%360)*DTR;
+        p.red = p.green = p.blue = 1;
+
+        // Set the GL arrays
+        CopyToGLArrays(particleIt);
+        unsigned int texCoordIt = particleIt*4*2;
+        texCoordList[texCoordIt] = 0;
+        texCoordList[texCoordIt+1] = 0;
+        texCoordList[texCoordIt+2] = 1;
+        texCoordList[texCoordIt+3] = 0;
+        texCoordList[texCoordIt+4] = 1;
+        texCoordList[texCoordIt+5] = 1;
+        texCoordList[texCoordIt+6] = 0;
+        texCoordList[texCoordIt+7] = 1;
+    }
 
     int width, height;
     unsigned char *data;
-    corona::Image* image = corona::OpenImage(Config.GetString("map:image","theMap.glow").c_str(), corona::PF_R8G8B8);
+    corona::Image* image = corona::OpenImage(Config.GetString("map:image","map.glow").c_str(), corona::PF_R8G8B8);
     unsigned char error[3] = { 0, 0, 0 };
     if (!image) {
         width  = 1;
         height = 1;
         data = error;
     }
-    else
-    {
+    else {
         corona::FlipImage(image, 45);
 
         width  = image->getWidth();
@@ -194,14 +192,12 @@ ParticleMap::ParticleMap()
     }
 
     unsigned int blackPixels = 0;
-    for (int i = 0; i < width*height; i += 1)
-    {
+    for (int i = 0; i < width*height; i += 1) {
         if (data[i*3] == 0) blackPixels += 1;
     }
 
     float pixelSkip = (float)blackPixels / numParticles;
 
-    theParticles = new Particle[numParticles];
     unsigned int particleCount = 0;
     float blackPixelCount = 0;
 
@@ -211,8 +207,8 @@ ParticleMap::ParticleMap()
         {
             if (blackPixelCount >= pixelSkip)
             {
-                theParticles[particleCount].destx = (i/3)%width;
-                theParticles[particleCount].desty = (i/3)/width;
+                particleList[particleCount].destx = (i/3)%width;
+                particleList[particleCount].desty = (i/3)/width;
                 particleCount += 1;
                 blackPixelCount = 0;
             }
@@ -225,64 +221,90 @@ ParticleMap::ParticleMap()
     unsigned int randParticle;
     for (unsigned int i = 0; i < numParticles; i++)
     {
-        if (theParticles[i].destx == 0 && theParticles[i].desty == 0)
+        if (particleList[i].destx == 0 && particleList[i].desty == 0)
         {
             randParticle = rand()%numParticles;
-            theParticles[i].destx = theParticles[randParticle].destx;
-            theParticles[i].desty = theParticles[randParticle].desty;
+            particleList[i].destx = particleList[randParticle].destx;
+            particleList[i].desty = particleList[randParticle].desty;
         }
     }
-
-
-    // Initialize the vertex buffer object
-/*    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-    const GLsizeiptr vertex_size = numParticles*4*2*sizeof(GLfloat);
-    const GLsizeiptr color_size = numParticles*3*sizeof(GLubyte);
-
-    glBufferData(GL_ARRAY_BUFFER, vertex_size+color_size, NULL, GL_DYNAMIC_DRAW);*/
 }
 
 ParticleMap::~ParticleMap() {
-    delete[] theParticles;
+    delete[] particleList;
+    delete[] vertexList;
+    delete[] texCoordList;
+    delete[] colorList;
     glDeleteTextures(1,&particleTex);
 }
 
-void ParticleMap::StepEvent() {
+void ParticleMap::Update() {
     for (unsigned int i = 0; i < numParticles; i++) {
-        theParticles[i].Update();
+        Particle& p = particleList[i];
+
+        if (spaceDown) {
+            p.xspeed += (p.destx-p.x)/320.0f;
+            p.yspeed += (p.desty-p.y)/240.0f;
+            p.xspeed *= .98f;
+            p.yspeed *= .98f;
+        }
+        else {
+            p.xspeed += ((rand()%101)/400.0f)-.125f;
+            p.yspeed += ((rand()%101)/400.0f)-.125f;
+        }
+
+        p.x += p.xspeed;
+        p.y += p.yspeed;
+        if (p.x < 0) {
+            p.x = 0;
+            p.xspeed = -p.xspeed;
+        }
+        else if (p.x > displayWidth) {
+            p.x = displayWidth;
+            p.xspeed = -p.xspeed;
+        }
+        if (p.y < 0) {
+            p.y = 0;
+            p.yspeed = -p.yspeed;
+        }
+        else if (p.y > displayHeight) {
+            p.y = displayHeight;
+            p.yspeed = -p.yspeed;
+        }
+
+        float color = colorAnim+particleList[i].colorAnimOffset;
+        p.red = fabs(sin(color));
+        p.green = fabs(sin(color+PI*.3333333));
+        p.blue = fabs(sin(color+PI*.6666666));
+
+        CopyToGLArrays(i);
     }
 }
 
-void ParticleMap::DrawEvent()
+void ParticleMap::Render()
 {
     colorAnim += .01f;
     if (colorAnim > 2*PI) colorAnim -= 2*PI;
 
-    float red = 1-sin(colorAnim);// >= 0 ? sin(colorAnim) : -sin(colorAnim);
+    /*float red = 1-sin(colorAnim);// >= 0 ? sin(colorAnim) : -sin(colorAnim);
     float green = 1-sin(colorAnim+1.04719755f);// >= 0 ? sin(colorAnim+1.04719755f) : -sin(colorAnim+1.04719755f);
-    float blue = 1-sin(colorAnim+2.0943951f);// >= 0 ? sin(colorAnim+2.0943951f) : -sin(colorAnim+2.0943951f);
+    float blue = 1-sin(colorAnim+2.0943951f);// >= 0 ? sin(colorAnim+2.0943951f) : -sin(colorAnim+2.0943951f);*/
+
+    glEnableClientState(GL_COLOR_ARRAY);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+    glVertexPointer(2, GL_FLOAT, 0, vertexList);
+    glColorPointer(3, GL_FLOAT, 0, colorList);
+    glTexCoordPointer(2, GL_FLOAT, 0, texCoordList);
+
     glBindTexture(GL_TEXTURE_2D, particleTex);
-    glBegin(GL_QUADS);
-    for (unsigned int i = 0; i < numParticles; i++)
-    {
-        theParticles[i].red = fabs(sin(colorAnim+theParticles[i].colorAnimOffset));
-        theParticles[i].green = fabs(sin(colorAnim+theParticles[i].colorAnimOffset+1.04719755f));
-        theParticles[i].blue = fabs(sin(colorAnim+theParticles[i].colorAnimOffset+2.0943951f));
-        glColor3f(theParticles[i].red, theParticles[i].green, theParticles[i].blue);
-        glTexCoord2f(0.0f,0.0f); glVertex2f(theParticles[i].x-32,theParticles[i].y-32);
-        glTexCoord2f(1.0f,0.0f); glVertex2f(theParticles[i].x+32,theParticles[i].y-32);
-        glTexCoord2f(1.0f,1.0f); glVertex2f(theParticles[i].x+32,theParticles[i].y+32);
-        glTexCoord2f(0.0f,1.0f); glVertex2f(theParticles[i].x-32,theParticles[i].y+32);
-    }
-    glEnd();
+    glDrawArrays(GL_QUADS,0,numParticles*4);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    red = sin(colorAnim) >= 0 ? sin(colorAnim) : -sin(colorAnim);
-    green = sin(colorAnim+1.04719755f) >= 0 ? sin(colorAnim+1.04719755f) : -sin(colorAnim+1.04719755f);
-    blue = sin(colorAnim+2.0943951f) >= 0 ? sin(colorAnim+2.0943951f) : -sin(colorAnim+2.0943951f);
-
+    glDisableClientState(GL_COLOR_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
 
@@ -418,7 +440,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             if (escapeDown) play = false;
 
 
-            map.StepEvent();
+            map.Update();
 
 
 
@@ -434,7 +456,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
             glPushMatrix();
 
-            map.DrawEvent();
+            map.Render();
 
             glPopMatrix();
 
@@ -527,7 +549,6 @@ void EnableOpenGL (HWND hWnd, HDC *hDC, HGLRC *hRC)
     // create and enable the render context (RC)
     *hRC = wglCreateContext( *hDC );
     wglMakeCurrent( *hDC, *hRC );
-
 }
 
 // Disable OpenGL
