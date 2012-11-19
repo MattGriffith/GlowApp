@@ -13,11 +13,12 @@
 #include <gl/glu.h>
 #include <fstream>
 #include <corona.h>
+#include <gl/glext.h>
 
 #include "config.h"
 
-#define MIN_WIDTH 32
-#define MIN_HEIGHT 1
+#define MIN_WIDTH 64
+#define MIN_HEIGHT 64
 
 // Universal constants
 static const float PI = 3.141592654f;
@@ -156,9 +157,10 @@ void Particle::Update()
 class ParticleMap {
     private:
     float colorAnim;
-    unsigned int particleNum;
+    unsigned int numParticles;
     Particle* theParticles;
     GLuint particleTex;
+    GLuint vbo;
     public:
     ParticleMap();
     ~ParticleMap();
@@ -169,7 +171,7 @@ class ParticleMap {
 ParticleMap::ParticleMap()
 {
     particleTex = LoadAlphaMap(Config.GetString("particle:texture","particle.png").c_str());
-    particleNum = Config.GetInt("map:numParticles",500);
+    numParticles = Config.GetInt("map:numParticles",500);
 
     colorAnim = 0;
 
@@ -197,9 +199,9 @@ ParticleMap::ParticleMap()
         if (data[i*3] == 0) blackPixels += 1;
     }
 
-    float pixelSkip = (float)blackPixels / particleNum;
+    float pixelSkip = (float)blackPixels / numParticles;
 
-    theParticles = new Particle[particleNum];
+    theParticles = new Particle[numParticles];
     unsigned int particleCount = 0;
     float blackPixelCount = 0;
 
@@ -221,15 +223,25 @@ ParticleMap::ParticleMap()
     delete image;
 
     unsigned int randParticle;
-    for (unsigned int i = 0; i < particleNum; i++)
+    for (unsigned int i = 0; i < numParticles; i++)
     {
         if (theParticles[i].destx == 0 && theParticles[i].desty == 0)
         {
-            randParticle = rand()%particleNum;
+            randParticle = rand()%numParticles;
             theParticles[i].destx = theParticles[randParticle].destx;
             theParticles[i].desty = theParticles[randParticle].desty;
         }
     }
+
+
+    // Initialize the vertex buffer object
+/*    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+    const GLsizeiptr vertex_size = numParticles*4*2*sizeof(GLfloat);
+    const GLsizeiptr color_size = numParticles*3*sizeof(GLubyte);
+
+    glBufferData(GL_ARRAY_BUFFER, vertex_size+color_size, NULL, GL_DYNAMIC_DRAW);*/
 }
 
 ParticleMap::~ParticleMap() {
@@ -238,7 +250,7 @@ ParticleMap::~ParticleMap() {
 }
 
 void ParticleMap::StepEvent() {
-    for (unsigned int i = 0; i < particleNum; i++) {
+    for (unsigned int i = 0; i < numParticles; i++) {
         theParticles[i].Update();
     }
 }
@@ -253,7 +265,7 @@ void ParticleMap::DrawEvent()
     float blue = 1-sin(colorAnim+2.0943951f);// >= 0 ? sin(colorAnim+2.0943951f) : -sin(colorAnim+2.0943951f);
     glBindTexture(GL_TEXTURE_2D, particleTex);
     glBegin(GL_QUADS);
-    for (unsigned int i = 0; i < particleNum; i++)
+    for (unsigned int i = 0; i < numParticles; i++)
     {
         theParticles[i].red = fabs(sin(colorAnim+theParticles[i].colorAnimOffset));
         theParticles[i].green = fabs(sin(colorAnim+theParticles[i].colorAnimOffset+1.04719755f));
@@ -315,8 +327,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     RECT desktop;
     displayWidth = Config.GetInt("display:width",640);
     displayHeight = Config.GetInt("display:height",480);
-    if (displayWidth < MIN_WIDTH) displayWidth = 32;
-    if (displayHeight < MIN_HEIGHT) displayHeight = 1;
+    if (displayWidth < MIN_WIDTH) displayWidth = MIN_WIDTH;
+    if (displayHeight < MIN_HEIGHT) displayHeight = MIN_HEIGHT;
     int windowLeft, windowTop;
     GetWindowRect(GetDesktopWindow(),&desktop);
     windowLeft = (desktop.right+desktop.left-displayWidth)/2;
@@ -346,7 +358,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    if (Config.GetBool("particle:addBlend",false)) {
+        glBlendFunc(GL_SRC_ALPHA,GL_ONE);
+    }
+    else {
+        glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    }
     glOrtho(0,displayWidth,0,displayHeight,-1,1);
 
     glClearColor(Config.GetFloat("display:bgRed",0.0f),
