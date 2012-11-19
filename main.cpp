@@ -104,6 +104,8 @@ class ParticleMap {
 
     float colorAnim;
     unsigned int numParticles;
+    int particleHalfWidth, particleHalfHeight;
+
     Particle* particleList;
     GLfloat* vertexList;
     GLfloat* colorList;
@@ -124,10 +126,10 @@ inline void ParticleMap::CopyToGLArrays(unsigned int index) {
     colorList[colorIt+2] = colorList[colorIt+5] = colorList[colorIt+8] = colorList[colorIt+11] = p.blue;
 
     // Fill in the vertices
-    GLfloat top = p.y+32;
-    GLfloat bottom = p.y-32;
-    GLfloat left = p.x-32;
-    GLfloat right = p.x+32;
+    GLfloat top = p.y+particleHalfHeight;
+    GLfloat bottom = p.y-particleHalfHeight;
+    GLfloat left = p.x-particleHalfWidth;
+    GLfloat right = p.x+particleHalfWidth;
     unsigned int vertexIt = index*8;
     vertexList[vertexIt] = left; vertexList[vertexIt+1] = bottom;
     vertexList[vertexIt+2] = right; vertexList[vertexIt+3] = bottom;
@@ -139,6 +141,9 @@ ParticleMap::ParticleMap() {
     // Load the textures and other information
     particleTex = LoadAlphaMap(Config.GetString("particle:texture","particle.png").c_str());
     numParticles = Config.GetInt("map:numParticles",500);
+    if (numParticles < 0) numParticles = 0;
+    particleHalfWidth = Config.GetInt("particle:width",64)/2;
+    particleHalfHeight = Config.GetInt("particle:height",64)/2;
     colorAnim = 0;
 
     // Allocate memory for the particles, and the GL arrays
