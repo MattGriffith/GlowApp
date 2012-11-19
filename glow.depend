@@ -12,13 +12,14 @@
 
 1353182815 c:\users\matt\dropbox\programmer business\github old projects\glow\glow_stuff.h
 
-1353296777 source:c:\users\matt\dropbox\programmer business\github old projects\glow\main.cpp
+1353297985 source:c:\users\matt\dropbox\programmer business\github old projects\glow\main.cpp
 	<windows.h>
 	<math.h>
 	<gl/gl.h>
 	<gl/glu.h>
 	<fstream>
 	<corona.h>
+	<gl/glext.h>
 	"config.h"
 
 1353227229 c:\users\matt\dropbox\programmer business\github old projects\glow\config.h

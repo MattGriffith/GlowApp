@@ -13,6 +13,7 @@
 #include <gl/glu.h>
 #include <fstream>
 #include <corona.h>
+#include <gl/glext.h>
 
 #include "config.h"
 
@@ -28,6 +29,11 @@ static ConfigFile Config;
 static int displayWidth = 640;
 static int displayHeight = 480;
 
+// VBO extension
+PFNGLGENBUFFERSARBPROC glGenBuffers = NULL;
+PFNGLBINDBUFFERARBPROC glBindBuffer = NULL;
+PFNGLBUFFERDATAARBPROC glBufferData = NULL;
+PFNGLDELETEBUFFERSARBPROC glDeleteBuffers = NULL;
 
 GLuint LoadAlphaMap(const char* filename) {
     // Load the image
@@ -53,8 +59,8 @@ GLuint LoadAlphaMap(const char* filename) {
 
     // Give it some basic properties
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE); // Mix colors and texture
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); // Use nearest mipmap
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); // Use nearest mimap
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST); // Use nearest mipmap
+    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST_MIPMAP_NEAREST); // Use nearest mimap
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); // Wrap texture over edge
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); // Wrap texture over edge
 
@@ -101,7 +107,7 @@ class ParticleMap {
     Particle* particleList;
     GLfloat* vertexList;
     GLfloat* colorList;
-    GLfloat* texCoordList;
+    GLuint texCoordVBO;
     GLuint particleTex;
 
     inline void CopyToGLArrays(unsigned int index);
@@ -139,7 +145,7 @@ ParticleMap::ParticleMap() {
     particleList = new Particle[numParticles];
     vertexList = new GLfloat[numParticles*4*2];
     colorList = new GLfloat[numParticles*4*3];
-    texCoordList = new GLfloat[numParticles*4*2];
+    GLfloat* texCoordList = new GLfloat[numParticles*4*2];
     if (particleList == NULL || vertexList == NULL || colorList == NULL || texCoordList == NULL) exit(1);
 
     // Initialize the particles and GL arrays
@@ -173,6 +179,13 @@ ParticleMap::ParticleMap() {
         texCoordList[texCoordIt+6] = 0;
         texCoordList[texCoordIt+7] = 1;
     }
+
+    // Generate the VBO for the texture coordinates
+    glGenBuffers(1,&texCoordVBO);
+    glBindBuffer(GL_ARRAY_BUFFER,texCoordVBO);
+    glBufferData(GL_ARRAY_BUFFER,numParticles*2*4*sizeof(GLfloat),texCoordList,GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER,0);
+    delete[] texCoordList;
 
     int width, height;
     unsigned char *data;
@@ -233,8 +246,8 @@ ParticleMap::ParticleMap() {
 ParticleMap::~ParticleMap() {
     delete[] particleList;
     delete[] vertexList;
-    delete[] texCoordList;
     delete[] colorList;
+    glDeleteBuffers(1,&texCoordVBO);
     glDeleteTextures(1,&particleTex);
 }
 
@@ -296,10 +309,12 @@ void ParticleMap::Render()
 
     glVertexPointer(2, GL_FLOAT, 0, vertexList);
     glColorPointer(3, GL_FLOAT, 0, colorList);
-    glTexCoordPointer(2, GL_FLOAT, 0, texCoordList);
+    glBindBuffer(GL_ARRAY_BUFFER, texCoordVBO);
+    glTexCoordPointer(2, GL_FLOAT, 0, NULL);
 
     glBindTexture(GL_TEXTURE_2D, particleTex);
     glDrawArrays(GL_QUADS,0,numParticles*4);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     glDisableClientState(GL_COLOR_ARRAY);
@@ -549,6 +564,13 @@ void EnableOpenGL (HWND hWnd, HDC *hDC, HGLRC *hRC)
     // create and enable the render context (RC)
     *hRC = wglCreateContext( *hDC );
     wglMakeCurrent( *hDC, *hRC );
+
+    // Initialize the extensions we're going to use
+    glGenBuffers = (PFNGLGENBUFFERSARBPROC)wglGetProcAddress("glGenBuffersARB");
+    glBindBuffer = (PFNGLBINDBUFFERARBPROC)wglGetProcAddress("glBindBufferARB");
+    glBufferData = (PFNGLBUFFERDATAARBPROC)wglGetProcAddress("glBufferDataARB");
+    glDeleteBuffers = (PFNGLDELETEBUFFERSARBPROC)wglGetProcAddress("glDeleteBuffersARB");
+
 }
 
 // Disable OpenGL
