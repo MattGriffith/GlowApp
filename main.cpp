@@ -105,6 +105,7 @@ class ParticleMap {
     float colorAnim;
     unsigned int numParticles;
     int particleHalfWidth, particleHalfHeight;
+    bool manyColors;
 
     Particle* particleList;
     GLfloat* vertexList;
@@ -120,10 +121,12 @@ inline void ParticleMap::CopyToGLArrays(unsigned int index) {
     Particle& p = particleList[index];
 
     // Fill in the colors
-    unsigned int colorIt = index*12;
-    colorList[colorIt] = colorList[colorIt+3] = colorList[colorIt+6] = colorList[colorIt+9] = p.red;
-    colorList[colorIt+1] = colorList[colorIt+4] = colorList[colorIt+7] = colorList[colorIt+10] = p.green;
-    colorList[colorIt+2] = colorList[colorIt+5] = colorList[colorIt+8] = colorList[colorIt+11] = p.blue;
+    if (manyColors) {
+        unsigned int colorIt = index*12;
+        colorList[colorIt] = colorList[colorIt+3] = colorList[colorIt+6] = colorList[colorIt+9] = p.red;
+        colorList[colorIt+1] = colorList[colorIt+4] = colorList[colorIt+7] = colorList[colorIt+10] = p.green;
+        colorList[colorIt+2] = colorList[colorIt+5] = colorList[colorIt+8] = colorList[colorIt+11] = p.blue;
+    }
 
     // Fill in the vertices
     GLfloat top = p.y+particleHalfHeight;
@@ -138,20 +141,22 @@ inline void ParticleMap::CopyToGLArrays(unsigned int index) {
 }
 
 ParticleMap::ParticleMap() {
-    // Load the textures and other information
+    // Load information from the config file, including the texture
     particleTex = LoadAlphaMap(Config.GetString("particle:texture","particle.png").c_str());
     numParticles = Config.GetInt("map:numParticles",500);
     if (numParticles < 0) numParticles = 0;
     particleHalfWidth = Config.GetInt("particle:width",64)/2;
     particleHalfHeight = Config.GetInt("particle:height",64)/2;
+    manyColors = !Config.GetBool("particle:uniformColor",true);
     colorAnim = 0;
 
     // Allocate memory for the particles, and the GL arrays
     particleList = new Particle[numParticles];
     vertexList = new GLfloat[numParticles*4*2];
-    colorList = new GLfloat[numParticles*4*3];
+    if (manyColors) colorList = new GLfloat[numParticles*4*3];
     GLfloat* texCoordList = new GLfloat[numParticles*4*2];
-    if (particleList == NULL || vertexList == NULL || colorList == NULL || texCoordList == NULL) exit(1);
+    if (particleList == NULL || vertexList == NULL || texCoordList == NULL) exit(1);
+    if (manyColors && colorList == NULL) exit(1);
 
     // Initialize the particles and GL arrays
     float maxStartSpeed = fabs(Config.GetFloat("particle:maxStartSpeed",5.0));
@@ -255,7 +260,7 @@ ParticleMap::ParticleMap() {
 ParticleMap::~ParticleMap() {
     delete[] particleList;
     delete[] vertexList;
-    delete[] colorList;
+    if (manyColors) delete[] colorList;
     glDeleteBuffers(1,&texCoordVBO);
     glDeleteTextures(1,&particleTex);
 }
@@ -294,10 +299,12 @@ void ParticleMap::Update() {
             p.yspeed = -p.yspeed;
         }
 
-        float color = colorAnim+particleList[i].colorAnimOffset;
-        p.red = fabs(sin(color));
-        p.green = fabs(sin(color+PI*.3333333));
-        p.blue = fabs(sin(color+PI*.6666666));
+        if (manyColors) {
+            float color = colorAnim+particleList[i].colorAnimOffset;
+            p.red = fabs(sin(color));
+            p.green = fabs(sin(color+PI*.3333333));
+            p.blue = fabs(sin(color+PI*.6666666));
+        }
 
         CopyToGLArrays(i);
     }
@@ -308,16 +315,19 @@ void ParticleMap::Render()
     colorAnim += .01f;
     if (colorAnim > 2*PI) colorAnim -= 2*PI;
 
-    /*float red = 1-sin(colorAnim);// >= 0 ? sin(colorAnim) : -sin(colorAnim);
-    float green = 1-sin(colorAnim+1.04719755f);// >= 0 ? sin(colorAnim+1.04719755f) : -sin(colorAnim+1.04719755f);
-    float blue = 1-sin(colorAnim+2.0943951f);// >= 0 ? sin(colorAnim+2.0943951f) : -sin(colorAnim+2.0943951f);*/
+    if (!manyColors) {
+        float red = 1-sin(colorAnim);// >= 0 ? sin(colorAnim) : -sin(colorAnim);
+        float green = 1-sin(colorAnim+1.04719755f);// >= 0 ? sin(colorAnim+1.04719755f) : -sin(colorAnim+1.04719755f);
+        float blue = 1-sin(colorAnim+2.0943951f);// >= 0 ? sin(colorAnim+2.0943951f) : -sin(colorAnim+2.0943951f);*/
+        glColor3f(red,green,blue);
+    }
 
-    glEnableClientState(GL_COLOR_ARRAY);
+    if (manyColors) glEnableClientState(GL_COLOR_ARRAY);
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
     glVertexPointer(2, GL_FLOAT, 0, vertexList);
-    glColorPointer(3, GL_FLOAT, 0, colorList);
+    if (manyColors) glColorPointer(3, GL_FLOAT, 0, colorList);
     glBindBuffer(GL_ARRAY_BUFFER, texCoordVBO);
     glTexCoordPointer(2, GL_FLOAT, 0, NULL);
 
@@ -326,9 +336,11 @@ void ParticleMap::Render()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    glDisableClientState(GL_COLOR_ARRAY);
+    if (manyColors) glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+
+    glColor3f(1,1,1);
 }
 
 
