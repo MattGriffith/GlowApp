@@ -214,14 +214,18 @@ ParticleMap::ParticleMap() {
     unsigned int particleCount = 0;
     float blackPixelCount = 0;
 
+    // Center the map in the window
+    int offsetX = (displayWidth-width)/2;
+    int offsetY = (displayHeight-height)/2;
+
     for (int i = 0; i < width*height*3; i += 3)
     {
         if (data[i] == 0)
         {
             if (blackPixelCount >= pixelSkip)
             {
-                particleList[particleCount].destx = (i/3)%width;
-                particleList[particleCount].desty = (i/3)/width;
+                particleList[particleCount].destx = (i/3)%width + offsetX;
+                particleList[particleCount].desty = (i/3)/width + offsetY;
                 particleCount += 1;
                 blackPixelCount = 0;
             }
