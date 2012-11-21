@@ -28,6 +28,8 @@ static const float DTR = PI/180; // Degrees To Radians
 static ConfigFile Config;
 static int displayWidth = 640;
 static int displayHeight = 480;
+static float displayHalfWidth = 320;
+static float displayHalfHeight = 240;
 
 // VBO extension
 PFNGLGENBUFFERSARBPROC glGenBuffers = NULL;
@@ -287,10 +289,20 @@ void ParticleMap::Update() {
                 if (abs(p.desty-displayHeight-particleHeight-p.y) < abs(p.desty-p.y)) tempDestY -= displayHeight+particleHeight;
                 else if (abs(p.desty+displayHeight+particleHeight-p.y) < abs(p.desty-p.y)) tempDestY += displayHeight+particleHeight;
             }
-            p.xspeed += (tempDestX-p.x)/320.0f;
-            p.yspeed += (tempDestY-p.y)/240.0f;
-            p.xspeed *= .98f;
-            p.yspeed *= .98f;
+            /*float pushX = tempDestX-p.x;
+            float pushY = tempDestY-p.y;
+            float distance = sqrt(pushX*pushX + pushY*pushY);
+            if (distance > 2) {
+                p.xspeed += pushX/distance;
+                p.yspeed += pushY/distance;
+            }
+            p.xspeed *= .99f;
+            p.yspeed *= .99f;*/
+            p.xspeed += (tempDestX-p.x)/(float)displayWidth;
+            p.yspeed += (tempDestY-p.y)/(float)displayHeight;
+            p.xspeed *= .99f;
+            p.yspeed *= .99f;
+
         }
         else {
             p.xspeed += ((rand()%101)/400.0f)-.125f;
@@ -423,6 +435,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     displayHeight = Config.GetInt("display:height",480);
     if (displayWidth < MIN_WIDTH) displayWidth = MIN_WIDTH;
     if (displayHeight < MIN_HEIGHT) displayHeight = MIN_HEIGHT;
+    displayHalfWidth = displayWidth/2.0;
+    displayHalfHeight = displayHeight/2.0;
     int windowLeft, windowTop;
     GetWindowRect(GetDesktopWindow(),&desktop);
     windowLeft = (desktop.right+desktop.left-displayWidth)/2;
