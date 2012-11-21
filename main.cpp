@@ -104,9 +104,11 @@ class ParticleMap {
 
     float colorAnim;
     unsigned int numParticles;
+    int particleWidth, particleHeight;
     float particleHalfWidth, particleHalfHeight;
     bool manyColors;
     float maxSpeedSqr;
+    bool wrap;
 
     Particle* particleList;
     GLfloat* vertexList;
@@ -146,11 +148,14 @@ ParticleMap::ParticleMap() {
     particleTex = LoadAlphaMap(Config.GetString("particle:texture","particle.png").c_str());
     numParticles = Config.GetInt("map:numParticles",500);
     if (numParticles < 0) numParticles = 0;
-    particleHalfWidth = Config.GetInt("particle:width",64)/2.0;
-    particleHalfHeight = Config.GetInt("particle:height",64)/2.0;
+    particleWidth = Config.GetInt("particle:width",64);
+    particleHeight = Config.GetInt("particle:height",64);
+    particleHalfWidth = particleWidth/2.0;
+    particleHalfHeight = particleHeight/2.0;
     manyColors = !Config.GetBool("particle:uniformColor",true);
     float maxSpeed = Config.GetFloat("particle:maxSpeed",0);
     maxSpeedSqr = maxSpeed*maxSpeed;
+    wrap = Config.GetBool("particle:wrap",false);
     colorAnim = 0;
 
     // Allocate memory for the particles, and the GL arrays
@@ -273,8 +278,17 @@ void ParticleMap::Update() {
         Particle& p = particleList[i];
 
         if (spaceDown) {
-            p.xspeed += (p.destx-p.x)/320.0f;
-            p.yspeed += (p.desty-p.y)/240.0f;
+            // Find the nearest direction to the destination, even across looping borders
+            int tempDestX = p.destx;
+            int tempDestY = p.desty;
+            if (wrap) {
+                if (abs(p.destx-displayWidth-particleWidth-p.x) < abs(p.destx-p.x)) tempDestX -= displayWidth+particleWidth;
+                else if (abs(p.destx+displayWidth+particleWidth-p.x) < abs(p.destx-p.x)) tempDestX += displayWidth+particleWidth;
+                if (abs(p.desty-displayHeight-particleHeight-p.y) < abs(p.desty-p.y)) tempDestY -= displayHeight+particleHeight;
+                else if (abs(p.desty+displayHeight+particleHeight-p.y) < abs(p.desty-p.y)) tempDestY += displayHeight+particleHeight;
+            }
+            p.xspeed += (tempDestX-p.x)/320.0f;
+            p.yspeed += (tempDestY-p.y)/240.0f;
             p.xspeed *= .98f;
             p.yspeed *= .98f;
         }
@@ -293,21 +307,32 @@ void ParticleMap::Update() {
 
         p.x += p.xspeed;
         p.y += p.yspeed;
-        if (p.x < 0) {
-            p.x = 0;
-            p.xspeed = -p.xspeed;
+
+        // Handle particles that wrap over the edge
+        if (wrap) {
+            if (p.x < -particleHalfWidth) p.x += displayWidth+particleWidth;
+            else if (p.x > displayWidth+particleHalfWidth) p.x -= displayWidth+particleWidth;
+            if (p.y < -particleHalfHeight) p.y += displayHeight+particleHeight;
+            else if (p.y > displayHeight+particleHalfHeight) p.y -= displayHeight+particleHeight;
         }
-        else if (p.x > displayWidth) {
-            p.x = displayWidth;
-            p.xspeed = -p.xspeed;
-        }
-        if (p.y < 0) {
-            p.y = 0;
-            p.yspeed = -p.yspeed;
-        }
-        else if (p.y > displayHeight) {
-            p.y = displayHeight;
-            p.yspeed = -p.yspeed;
+        // Handle particles that bounce off the edge
+        else {
+            if (p.x < 0) {
+                p.x = 0;
+                p.xspeed = -p.xspeed;
+            }
+            else if (p.x > displayWidth) {
+                p.x = displayWidth;
+                p.xspeed = -p.xspeed;
+            }
+            if (p.y < 0) {
+                p.y = 0;
+                p.yspeed = -p.yspeed;
+            }
+            else if (p.y > displayHeight) {
+                p.y = displayHeight;
+                p.yspeed = -p.yspeed;
+            }
         }
 
         if (manyColors) {
