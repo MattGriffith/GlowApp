@@ -111,6 +111,7 @@ class ParticleMap {
     bool manyColors;
     float maxSpeedSqr;
     bool wrap;
+    float speedJitter, speedJitterFraction;
 
     Particle* particleList;
     GLfloat* vertexList;
@@ -158,6 +159,8 @@ ParticleMap::ParticleMap() {
     float maxSpeed = Config.GetFloat("particle:maxSpeed",0);
     maxSpeedSqr = maxSpeed*maxSpeed;
     wrap = Config.GetBool("particle:wrap",false);
+    speedJitter = Config.GetFloat("particle:speedJitter",.125);
+    speedJitterFraction = speedJitter*2.0/RAND_MAX;
     colorAnim = 0;
 
     // Allocate memory for the particles, and the GL arrays
@@ -305,8 +308,9 @@ void ParticleMap::Update() {
 
         }
         else {
-            p.xspeed += ((rand()%101)/400.0f)-.125f;
-            p.yspeed += ((rand()%101)/400.0f)-.125f;
+            // Apply a random "speed jitter"
+            p.xspeed += (rand()*speedJitterFraction)-speedJitter;
+            p.yspeed += (rand()*speedJitterFraction)-speedJitter;
         }
         if (maxSpeedSqr != 0) {
             float hypotenuseSqr = p.xspeed*p.xspeed + p.yspeed*p.yspeed;
