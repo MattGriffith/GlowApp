@@ -462,11 +462,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     windowLeft = (desktop.right+desktop.left-displayWidth)/2;
     windowTop = (desktop.bottom+desktop.top-displayHeight)/2;
 
+    // Adjust the window size so the client area is displayWidth x displayHeight
+    int sideBorder, topBorder, bottomBorder;
+    sideBorder = GetSystemMetrics(SM_CXFIXEDFRAME);
+    topBorder = GetSystemMetrics(SM_CYFIXEDFRAME) + GetSystemMetrics(SM_CYCAPTION);
+    bottomBorder = GetSystemMetrics(SM_CYFIXEDFRAME);
+    windowLeft -= sideBorder;
+
     // Create window
     hWnd = CreateWindowEx (0, "TroidGlow",
                             Config.GetString("display:caption","TroidGlow by Matthew Griffith").c_str(),
                             WS_CAPTION | WS_POPUPWINDOW | WS_VISIBLE,
-                            windowLeft, windowTop, displayWidth, displayHeight,
+                            windowLeft, windowTop, displayWidth+sideBorder*2, displayHeight+topBorder+bottomBorder,
                             NULL, NULL, hInstance, NULL);
 
     if (hWnd == 0) {
